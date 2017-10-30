@@ -334,6 +334,8 @@ public class JsonFormFragment extends MvpFragment<JsonFormFragmentPresenter, Jso
                     mScrollView.scrollTo(0, y);
                 }
             });
+
+            view.getParent().requestChildFocus(view, view);
         }
     }
 
