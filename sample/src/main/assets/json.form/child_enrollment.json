@@ -738,7 +738,9 @@
         "type": "toaster_notes",
         "text": "This is an information note",
         "text_color": "#1199F9",
-        "toaster_type": "info"
+        "toaster_type": "info",
+        "toaster_info_text": "This is an information note, This is an information note, This is an information note, This is an information note,This is an information note, This is an information note",
+        "toaster_info_title": "Information Toaster Info Title"
       },
       {
         "key": "toaster_notes",
@@ -768,6 +770,14 @@
         "text": "This is an warning note",
         "text_color": "#FFC100",
         "toaster_type": "warning"
+      },
+      {
+        "key": "spacer",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "",
+        "openmrs_entity_id": "spacer",
+        "type": "spacer",
+        "spacer_height": "40sp"
       },
       {
         "key": "toaster_notes",

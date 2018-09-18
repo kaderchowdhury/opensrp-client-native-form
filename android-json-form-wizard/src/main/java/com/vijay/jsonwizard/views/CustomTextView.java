@@ -45,7 +45,6 @@ public class CustomTextView extends AppCompatTextView {
 
     public void setHintOnText(boolean hintOnText) {
         this.hintOnText = hintOnText;
-
         setText((String) getText());
     }
 
@@ -72,7 +71,6 @@ public class CustomTextView extends AppCompatTextView {
     }
 
     public void setText(String text) {
-
         if (hintOnText && isEnabled()) {
             int currentStartScanIndex = 0;
 
@@ -83,7 +81,7 @@ public class CustomTextView extends AppCompatTextView {
                     int endTagIndex = text.indexOf(">", currentStartScanIndex + 1);
 
                     if (endTagIndex > currentStartScanIndex) {
-                        styledString.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.text_hint_color)), currentStartScanIndex,
+                        styledString.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.toaster_note_red_icon)), currentStartScanIndex,
                                 endTagIndex + 1, 0);
                     }
                     currentStartScanIndex = endTagIndex;

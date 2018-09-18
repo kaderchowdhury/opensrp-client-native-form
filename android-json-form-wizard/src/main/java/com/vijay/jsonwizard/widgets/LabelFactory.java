@@ -7,7 +7,6 @@ import android.text.Html;
 import android.text.Spanned;
 import android.text.TextUtils;
 import android.view.View;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
 import com.rey.material.util.ViewUtil;
@@ -66,7 +65,7 @@ public class LabelFactory implements FormWidgetFactory {
             bottomMarginInt = FormUtils.getValueFromSpOrDpOrPx(bottomMargin, context);
         }
 
-        LinearLayout.LayoutParams layoutParams = FormUtils.getLayoutParams(FormUtils.MATCH_PARENT, FormUtils.WRAP_CONTENT, 0,
+        RelativeLayout.LayoutParams layoutParams = FormUtils.getRelativeLayoutParams(FormUtils.MATCH_PARENT, FormUtils.WRAP_CONTENT, 0,
                 topMarginInt, 0, bottomMarginInt);
         relativeLayout.setLayoutParams(layoutParams);
 
@@ -114,12 +113,6 @@ public class LabelFactory implements FormWidgetFactory {
         int labelTextSize = FormUtils.getValueFromSpOrDpOrPx(jsonObject.optString("text_size", JsonFormConstants.DEFAULT_LABEL_TEXT_SIZE), context);
 
         CustomTextView labelText = relativeLayout.findViewById(R.id.label_text);
-        labelText.setTextSize(labelTextSize);
-
-        labelText.setEnabled(!jsonObject.optBoolean(JsonFormConstants.READ_ONLY, false));//Gotcha: Should be set before createLabelText is used
-        labelText.setHintOnText(hintOnText);//Gotcha: Should be set before createLabelText is used
-
-        labelText.setText(createLabelText(jsonObject));
 
         if (bgColorInt != 0) {
             labelText.setBackgroundColor(bgColorInt);
@@ -133,6 +126,12 @@ public class LabelFactory implements FormWidgetFactory {
                     FormUtils.getValueFromSpOrDpOrPx(bottomPadding, context)
             );
         }
+
+        labelText.setTextSize(labelTextSize);
+        labelText.setEnabled(!jsonObject.optBoolean(JsonFormConstants.READ_ONLY, false));//Gotcha: Should be set before createLabelText is used
+        labelText.setHintOnText(hintOnText);//Gotcha: Should be set before createLabelText is used
+        labelText.setText(createLabelText(jsonObject));
+
     }
 
     /**
@@ -145,31 +144,25 @@ public class LabelFactory implements FormWidgetFactory {
     private Spanned createLabelText(JSONObject jsonObject) throws JSONException {
         String text = jsonObject.getString(JsonFormConstants.TEXT);
         JSONObject requiredObject = jsonObject.optJSONObject(JsonFormConstants.V_REQUIRED);
+        Boolean required = jsonObject.optBoolean(JsonFormConstants.READ_ONLY);
         Spanned generatedLabelText;
         String asterisks = "";
         if (requiredObject != null) {
             String requiredValue = requiredObject.getString(JsonFormConstants.VALUE);
             if (!TextUtils.isEmpty(requiredValue) && Boolean.TRUE.toString().equalsIgnoreCase(requiredValue)) {
-                asterisks = "<font color=#CF0800> *</font>";
+                asterisks = "<font color=" + "#CF0800" + "> *</font>";
             }
         }
 
-        String labelTextColor = jsonObject.optString("text_color", JsonFormConstants.DEFAULT_TEXT_COLOR);
+        String labelTextColor = required ? "#737373" : jsonObject.optString(JsonFormConstants.TEXT_COLOR, null);
 
-        String combinedLabelText;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
-            combinedLabelText = "<font color=" + labelTextColor + ">" + Html.escapeHtml(text) + "</font>" + asterisks;
-        } else {
-            combinedLabelText = "<font color=" + labelTextColor + ">" + TextUtils.htmlEncode(text) + "</font>" + asterisks;
-        }
+        String combinedLabelText = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN ? "<font color=" + labelTextColor + ">" + Html
+                .escapeHtml(text) + "</font>" + asterisks : "<font color=" + labelTextColor + ">" + TextUtils.htmlEncode(text) + "</font>" +
+                asterisks;
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            generatedLabelText = Html.fromHtml(combinedLabelText, Html.FROM_HTML_MODE_LEGACY);
-        } else {
-            generatedLabelText = Html.fromHtml(combinedLabelText);
-        }
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? Html.fromHtml(combinedLabelText, Html.FROM_HTML_MODE_LEGACY) : Html
+                .fromHtml(combinedLabelText);
 
-        return generatedLabelText;
     }
 
 }
