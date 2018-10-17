@@ -488,6 +488,32 @@
         "v_regex": {
           "value": "(09[5-7][0-9]{7})|\s*",
           "err": "Number must begin with 095, 096, or 097 and must be a total of 10 digits in length"
+        },
+        "relevance": {
+          "step1:delivery_complications": {
+            "ex-checkbox": [
+              {
+                "or": [
+                  "severe_bleeding"
+                ]
+              },
+              {
+                "and": [
+                  "perineal_tear",
+                  "placenta_previa"
+                ]
+              },
+              {
+                "and": [
+                  "cord_prolapse",
+                  "abnormal_presentation"
+                ],
+                "or": [
+                  "prolonged_obstructed_labour"
+                ]
+              }
+            ]
+          }
         }
       },
       {
@@ -501,6 +527,76 @@
         "label_text_size": "18sp",
         "label_text_color": "#FF9800",
         "hint": "Any delivery complications?",
+        "exclusive": [
+          "none"
+        ],
+        "options": [
+          {
+            "key": "none",
+            "text": "None",
+            "value": false,
+            "openmrs_choice_id": "160034AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          },
+          {
+            "key": "severe_bleeding",
+            "text": "Severe bleeding/Hemorrhage",
+            "value": false,
+            "openmrs_choice_id": "160034AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "text_color": "#000000"
+          },
+          {
+            "key": "placenta_previa",
+            "text": "Placenta previa",
+            "value": false,
+            "openmrs_choice_id": "160034AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "text_size": "30sp"
+          },
+          {
+            "key": "cord_prolapse",
+            "text": "Cord prolapse",
+            "value": false,
+            "openmrs_choice_id": "160034AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "text_size": "10sp"
+          },
+          {
+            "key": "prolonged_obstructed_labour",
+            "text": "Prolonged/obstructed labour",
+            "value": false,
+            "openmrs_choice_id": "160034AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          },
+          {
+            "key": "abnormal_presentation",
+            "text": "Abnormal presentation",
+            "value": false,
+            "openmrs_choice_id": "160034AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "text_color": "#FF9800"
+          },
+          {
+            "key": "perineal_tear",
+            "text": "Perineal tear (2, 3 or 4th degree)",
+            "value": false,
+            "openmrs_choice_id": "160034AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          },
+          {
+            "key": "Other",
+            "text": "Other",
+            "value": false,
+            "openmrs_choice_id": "160034AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          }
+        ],
+        "v_required": {
+          "value": "false"
+        }
+      },
+      {
+        "key": "delivery_complications",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "concept",
+        "openmrs_entity_id": "161641AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "openmrs_data_type": "select one",
+        "type": "check_box",
+        "label": "Any physiological symptoms?",
+        "label_text_style": "bold",
         "options": [
           {
             "key": "None",
@@ -509,47 +605,19 @@
             "openmrs_choice_id": "160034AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
           },
           {
-            "key": "Severe bleeding/Hemorrhage",
-            "text": "Severe bleeding/Hemorrhage",
-            "value": false,
-            "openmrs_choice_id": "160034AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-            "text_color": "#000000"
-          },
-          {
-            "key": "Placenta previa",
-            "text": "Placenta previa",
-            "value": false,
-            "openmrs_choice_id": "160034AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-            "text_size": "30sp"
-          },
-          {
-            "key": "Cord prolapse",
-            "text": "Cord prolapse",
-            "value": false,
-            "openmrs_choice_id": "160034AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-            "text_size": "10sp"
-          },
-          {
-            "key": "Prolonged/obstructed labour",
-            "text": "Prolonged/obstructed labour",
+            "key": "fatigue",
+            "text": "Fatigue",
             "value": false,
             "openmrs_choice_id": "160034AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
           },
           {
-            "key": "Abnormal presentation",
-            "text": "Abnormal presentation",
-            "value": false,
-            "openmrs_choice_id": "160034AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-            "text_color": "#FF9800"
-          },
-          {
-            "key": "Perineal tear (2, 3 or 4th degree)",
-            "text": "Perineal tear (2, 3 or 4th degree)",
+            "key": "visual_disturbance",
+            "text": "Visual disturbance",
             "value": false,
             "openmrs_choice_id": "160034AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
           },
           {
-            "key": "Other",
+            "key": "other",
             "text": "Other",
             "value": false,
             "openmrs_choice_id": "160034AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -591,6 +659,16 @@
             "type": "string",
             "ex": "notEqualTo(.,\"\")"
           }
+        }
+      },
+      {
+        "key": "label_site_ipv_assess",
+        "type": "label",
+        "text": "1. Are all of the following in place at your facility:",
+        "text_size": "22px",
+        "text_color": "#000000",
+        "v_required": {
+          "value": true
         }
       },
       {
@@ -698,26 +776,65 @@
         "openmrs_entity_id": ""
       },
       {
+        "key": "site_ipv_assess",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "",
+        "openmrs_entity_id": "",
+        "openmrs_data_type": "select one",
+        "label": "1. A protocol or standard operating procedure for Intimate Partner Violence (IPV); \n\n2. A health worker trained on how to ask about IPV and how to provide the minimum response or beyond;\n\n3. A private setting;\n\n4. A way to ensure confidentiality;\n\n5. Time to allow for appropriate disclosure; and\n\n6. A system for referral in place.",
+        "label_text_size": "18px",
+        "type": "native_radio",
+        "options": [
+          {
+            "key": "1",
+            "text": "Yes"
+          },
+          {
+            "key": "0",
+            "text": "No"
+          }
+        ],
+        "value": "",
+        "v_required": {
+          "value": true,
+          "err": "Please select where stock was issued"
+        }
+      },
+      {
+        "key": "spacer",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "",
+        "openmrs_entity_id": "spacer",
+        "type": "spacer",
+        "spacer_height": "20sp"
+      },
+      {
         "key": "native_radio",
         "openmrs_entity_parent": "",
         "openmrs_entity": "",
         "openmrs_entity_id": "",
         "type": "native_radio",
         "label": "Highest Level of School",
-        "label_text_size": "20sp",
+        "label_text_size": "18px",
         "label_text_color": "#FF9800",
-        "label_info_text": "Checking out the display oof the info icon needed to display this infomation",
+        "label_info_text": "Checking out the display oof the info icon needed to display this information",
         "label_info_title": "Highest Level of School",
         "options": [
           {
             "key": "primary_school",
             "text": "Primary school",
-            "text_color": "#000000"
+            "text_color": "#000000",
+            "specify_info": "Specify",
+            "specify_info_color": "#000000",
+            "extra_info": "Here we go",
+            "extra_info_color": "#445567"
           },
           {
             "key": "high_school",
             "text": "High School",
-            "text_size": "30sp"
+            "text_size": "18px",
+            "specify_info": "Specify",
+            "extra_info": "Here we go"
           },
           {
             "key": "higher_education",
@@ -725,10 +842,74 @@
             "text_color": "#358CB7"
           }
         ],
-        "value": "primary_school",
+        "value": "high_school",
         "v_required": {
           "value": true
         }
+      },
+      {
+        "key": "native_radio_tertiary_education",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "",
+        "openmrs_entity_id": "",
+        "type": "native_radio",
+        "label": "Completed Tertiary education?",
+        "label_text_size": "18px",
+        "label_text_style": "bold",
+        "options": [
+          {
+            "key": "yes",
+            "text": "Yes",
+            "text_size": "18px"
+          },
+          {
+            "key": "no",
+            "text": "No",
+            "text_size": "18px"
+          }
+        ],
+        "value": "",
+        "v_required": {
+          "value": true
+        }
+      },
+      {
+        "key": "native_radio_notification_updates2",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "",
+        "openmrs_entity_id": "",
+        "type": "native_radio",
+        "label": "Is the user registered for notification updates?",
+        "label_text_size": "18px",
+        "label_text_style": "bold_italic",
+        "options": [
+          {
+            "key": "yes",
+            "text": "Yes"
+          },
+          {
+            "key": "no",
+            "text": "No"
+          }
+        ],
+        "value": "",
+        "v_required": {
+          "value": true
+        },
+        "relevance": {
+          "step1:native_radio_tertiary_education": {
+            "type": "string",
+            "ex": "equalTo(., \"yes\")"
+          }
+        }
+      },
+      {
+        "key": "spacer",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "",
+        "openmrs_entity_id": "spacer",
+        "type": "spacer",
+        "spacer_height": "20sp"
       },
       {
         "key": "toaster_notes",
@@ -788,6 +969,248 @@
         "text": "This is an danger note",
         "text_color": "#CF0800",
         "toaster_type": "problem"
+      },
+      {
+        "key": "spacer",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "",
+        "openmrs_entity_id": "spacer",
+        "type": "spacer",
+        "spacer_height": "10sp"
+      },
+      {
+        "key": "toaster_notes",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "",
+        "openmrs_entity_id": "",
+        "type": "toaster_notes",
+        "text": "Lets test with this for relevance",
+        "toaster_type": "problem",
+        "relevance": {
+          "step1:native_radio_notification_updates": {
+            "type": "string",
+            "ex": "equalTo(., \"yes\")"
+          }
+        }
+      },
+      {
+        "key": "spacer",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "",
+        "openmrs_entity_id": "spacer",
+        "type": "spacer",
+        "spacer_height": "10sp"
+      },
+      {
+        "key": "native_radio_notification_updates",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "",
+        "openmrs_entity_id": "",
+        "type": "native_radio",
+        "label": "Is the user registered for notification updates?",
+        "label_text_size": "18px",
+        "label_text_style": "bold_italic",
+        "options": [
+          {
+            "key": "yes",
+            "text": "Yes"
+          },
+          {
+            "key": "no",
+            "text": "No"
+          }
+        ],
+        "value": "",
+        "v_required": {
+          "value": true
+        }
+      },
+      {
+        "key": "spacer",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "",
+        "openmrs_entity_id": "spacer",
+        "type": "spacer",
+        "spacer_height": "10sp"
+      },
+      {
+        "key": "enabled_label",
+        "type": "label",
+        "text": "Please select the number of family members",
+        "text_color": "#000000",
+        "v_required": {
+          "value": true
+        }
+      },
+      {
+        "key": "enabled_label",
+        "type": "label",
+        "label_text_style": "bold",
+        "text": "This is a bold text label that is also required.",
+        "text_color": "#000000",
+        "v_required": {
+          "value": true
+        }
+      },
+      {
+        "key": "spacer",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "",
+        "openmrs_entity_id": "spacer",
+        "type": "spacer",
+        "spacer_height": "15sp"
+      },
+      {
+        "key": "enabled_label",
+        "type": "label",
+        "label_text_style": "bold",
+        "text": "This is the normal edit text design",
+        "text_color": "#000000",
+        "v_required": {
+          "value": true
+        }
+      },
+      {
+        "key": "Last_Name",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "person",
+        "openmrs_entity_id": "last_name",
+        "type": "normal_edit_text",
+        "hint": "Last name *",
+        "edit_type": "name",
+        "edit_text_style": "bordered",
+        "v_required": {
+          "value": "true",
+          "err": "Please enter the last name"
+        },
+        "v_regex": {
+          "value": "[A-Za-z\\s\.\-]*",
+          "err": "Please enter a valid name"
+        }
+      },
+      {
+        "key": "numbers_selector",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "",
+        "openmrs_entity_id": "",
+        "type": "numbers_selector",
+        "number_of_selectors": "5",
+        "start_number": "1",
+        "max_value": "20",
+        "text_size": "16px",
+        "text_color": "#000000",
+        "selected_text_color": "#ffffff",
+        "v_required": {
+          "value": true
+        }
+      },
+      {
+        "key": "spacer",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "",
+        "openmrs_entity_id": "spacer",
+        "type": "spacer",
+        "spacer_height": "15sp"
+      },
+      {
+        "key": "numbers_selector_two",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "",
+        "openmrs_entity_id": "",
+        "type": "numbers_selector",
+        "number_of_selectors": "5",
+        "start_number": "0",
+        "max_value": "20",
+        "text_size": "16px",
+        "text_color": "#000000",
+        "selected_text_color": "#ffffff",
+        "v_required": {
+          "value": true
+        }
+      },
+      {
+        "key": "spacer",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "",
+        "openmrs_entity_id": "spacer",
+        "type": "spacer",
+        "spacer_height": "15sp"
+      },
+      {
+        "key": "numbers_selector_four",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "",
+        "openmrs_entity_id": "",
+        "type": "numbers_selector",
+        "number_of_selectors": "5",
+        "start_number": "10",
+        "max_value": "20",
+        "text_size": "16px",
+        "text_color": "#000000",
+        "selected_text_color": "#ffffff",
+        "v_required": {
+          "value": true
+        }
+      },
+      {
+        "key": "tobacco_user",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "",
+        "openmrs_entity_id": "",
+        "type": "native_radio",
+        "label": "Uses tobacco products?",
+        "multi_relevance": true,
+        "options": [
+          {
+            "key": "yes",
+            "text": "Yes",
+            "openmrs_entity_parent": "",
+            "openmrs_entity": "",
+            "openmrs_entity_id": ""
+          },
+          {
+            "key": "no",
+            "text": "No",
+            "openmrs_entity_parent": "",
+            "openmrs_entity": "",
+            "openmrs_entity_id": ""
+          },
+          {
+            "key": "recently_quit",
+            "text": "Recently quit",
+            "openmrs_entity_parent": "",
+            "openmrs_entity": "",
+            "openmrs_entity_id": ""
+          }
+        ],
+        "v_required": {
+          "value": true,
+          "err": "Please select if you use any tobacco products"
+        }
+      },
+      {
+        "key": "tobacco_cessation_toaster",
+        "openmrs_entity_parent": "",
+        "openmrs_entity": "",
+        "openmrs_entity_id": "",
+        "type": "toaster_notes",
+        "text": "Tobacco cessation counseling",
+        "text_color": "#000000",
+        "toaster_info_text": "Healthcare providers should routinely offer advice and psycho-social interventions for tobacco cessation to all pregnant women who are either current tobacco users or recent tobacco quitters.",
+        "toaster_info_title": "Tobacco cessation counseling",
+        "toaster_type": "problem",
+        "relevance": {
+          "step1:tobacco_user": {
+            "ex-checkbox": [
+              {
+                "or": [
+                  "yes",
+                  "recently_quit"
+                ]
+              }
+            ]
+          }
+        }
       }
     ]
   }

@@ -2,13 +2,17 @@ package com.vijay.jsonwizard.utils;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.support.v7.widget.AppCompatTextView;
 import android.text.Html;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
 import android.widget.RelativeLayout;
 
 import com.rey.material.util.ViewUtil;
@@ -22,9 +26,13 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by vijay on 24-05-2015.
@@ -35,12 +43,12 @@ public class FormUtils {
     public static final int MATCH_PARENT = -1;
     public static final int WRAP_CONTENT = -2;
     public static final String METADATA_PROPERTY = "metadata";
+    public static final String LOOK_UP_JAVAROSA_PROPERTY = "look_up";
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yyyy");
     private static final SimpleDateFormat DATE_TIME_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private static final String START_JAVAROSA_PROPERTY = "start";
     private static final String END_JAVAROSA_PROPERTY = "end";
     private static final String TODAY_JAVAROSA_PROPERTY = "today";
-    //public static final String LOOK_UP_JAVAROSA_PROPERTY = "look_up";
 
     public static LinearLayout.LayoutParams getLinearLayoutParams(int width, int height, int left, int top, int right, int bottom) {
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(width, height);
@@ -95,7 +103,7 @@ public class FormUtils {
     }
 
     public static int dpToPixels(Context context, float dps) {
-        final float scale = context.getResources().getDisplayMetrics().density;
+        float scale = context.getResources().getDisplayMetrics().density;
         return (int) (dps * scale + 0.5f);
     }
 
@@ -197,7 +205,7 @@ public class FormUtils {
         }
     }
 
-    private static int spToPx(Context context, float sp) {
+    public static int spToPx(Context context, float sp) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, context.getResources().getDisplayMetrics());
     }
 
@@ -212,6 +220,8 @@ public class FormUtils {
                 px = FormUtils.dpToPixels(context, unitValues);
             } else if (spOrDpOrPx.contains("px")) {
                 px = Integer.parseInt(spOrDpOrPx.replace("px", ""));
+            } else {
+                px = (int) context.getResources().getDimension(R.dimen.default_label_text_size);
             }
         }
 
@@ -222,8 +232,8 @@ public class FormUtils {
             readOnly, CommonListener listener) throws JSONException {
         String label = jsonObject.optString(JsonFormConstants.LABEL, "");
         String asterisks = "";
-        int labelTextSize = FormUtils.getValueFromSpOrDpOrPx(jsonObject.optString(JsonFormConstants.LABEL_TEXT_SIZE, JsonFormConstants
-                .DEFAULT_LABEL_TEXT_SIZE), context);
+        int labelTextSize = FormUtils.getValueFromSpOrDpOrPx(jsonObject.optString(JsonFormConstants.LABEL_TEXT_SIZE, String.valueOf(context
+                .getResources().getDimension(R.dimen.default_label_text_size))), context);
         String labelTextColor = jsonObject.optString(JsonFormConstants.LABEL_TEXT_COLOR, JsonFormConstants.DEFAULT_TEXT_COLOR);
         JSONObject requiredObject = jsonObject.optJSONObject(JsonFormConstants.V_REQUIRED);
         RelativeLayout relativeLayout = createLabelRelativeLayout(jsonObject, context, listener);
@@ -238,6 +248,9 @@ public class FormUtils {
 
         String combinedLabelText = "<font color=" + labelTextColor + ">" + label + "</font>";
 
+        //Applying textStyle to the text;
+        String textStyle = jsonObject.optString(JsonFormConstants.TEXT_STYLE, JsonFormConstants.NORMAL);
+        setTextStyle(textStyle, labelText);
         labelText.setText(Html.fromHtml(combinedLabelText));
         labelText.setTextSize(labelTextSize);
         canvasIds.put(relativeLayout.getId());
@@ -246,9 +259,9 @@ public class FormUtils {
     }
 
     public static RelativeLayout createLabelRelativeLayout(JSONObject jsonObject, Context context, CommonListener listener) throws JSONException {
-        String openMrsEntityParent = jsonObject.getString(JsonFormConstants.OPENMRS_ENTITY_PARENT);
-        String openMrsEntity = jsonObject.getString(JsonFormConstants.OPENMRS_ENTITY);
-        String openMrsEntityId = jsonObject.getString(JsonFormConstants.OPENMRS_ENTITY_ID);
+        String openMrsEntityParent = jsonObject.optString(JsonFormConstants.OPENMRS_ENTITY_PARENT, null);
+        String openMrsEntity = jsonObject.optString(JsonFormConstants.OPENMRS_ENTITY, null);
+        String openMrsEntityId = jsonObject.optString(JsonFormConstants.OPENMRS_ENTITY_ID, null);
         String relevance = jsonObject.optString(JsonFormConstants.RELEVANCE);
         String labelInfoText = jsonObject.optString(JsonFormConstants.LABEL_INFO_TEXT, "");
         String labelInfoTitle = jsonObject.optString(JsonFormConstants.LABEL_INFO_TITLE, "");
@@ -267,6 +280,12 @@ public class FormUtils {
 
         ImageView imageView = relativeLayout.findViewById(R.id.label_info);
 
+        showInfoIcon(jsonObject, listener, labelInfoText, labelInfoTitle, imageView);
+
+        return relativeLayout;
+    }
+
+    public static void showInfoIcon(JSONObject jsonObject, CommonListener listener, String labelInfoText, String labelInfoTitle, ImageView imageView) throws JSONException {
         if (!TextUtils.isEmpty(labelInfoText)) {
             imageView.setVisibility(View.VISIBLE);
             imageView.setTag(R.id.key, jsonObject.getString(JsonFormConstants.KEY));
@@ -275,7 +294,120 @@ public class FormUtils {
             imageView.setTag(R.id.label_dialog_title, labelInfoTitle);
             imageView.setOnClickListener(listener);
         }
+    }
 
-        return relativeLayout;
+    /**
+     * Checks and uncheck the radio buttons in a linear layout view
+     * follows this fix https://stackoverflow.com/a/26961458/5784584
+     *
+     * @param parent
+     */
+    public static void setRadioExclusiveClick(ViewGroup parent) {
+        final List<RadioButton> radioButtonList = getRadioButtons(parent);
+        for (RadioButton radioButton : radioButtonList) {
+            radioButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    RadioButton radioButtonView = (RadioButton) view;
+                    radioButtonView.setChecked(true);
+                    for (RadioButton button : radioButtonList) {
+                        if (button.getId() != radioButtonView.getId()) {
+                            button.setChecked(false);
+                        }
+                    }
+
+                }
+            });
+        }
+    }
+
+    /**
+     * Get the actual radio buttons on the parent view given
+     *
+     * @param parent
+     * @return radioButtonList
+     */
+    private static List<RadioButton> getRadioButtons(ViewGroup parent) {
+        List<RadioButton> radioButtonList = new ArrayList<>();
+        for (int i = 0; i < parent.getChildCount(); i++) {
+            View view = parent.getChildAt(i);
+            if (view instanceof RadioButton) {
+                radioButtonList.add((RadioButton) view);
+            } else if (view instanceof ViewGroup) {
+                List<RadioButton> nestedRadios = getRadioButtons((ViewGroup) view);
+                radioButtonList.addAll(nestedRadios);
+            }
+        }
+        return radioButtonList;
+    }
+
+    /**
+     * This method returns a {@link Calendar} object at mid-day corresponding to a date matching
+     * the format specified in {@code DATE_FORMAT} or a day in reference to today e.g today,
+     * today-1, today+10
+     *
+     * @param dayString_ The string to be converted to a date
+     * @return The calendar object corresponding to the day, or object corresponding to today's
+     * date if an error occurred
+     */
+    public static Calendar getDate(String dayString_) {
+        Calendar calendarDate = Calendar.getInstance();
+
+        if (dayString_ != null && dayString_.trim().length() > 0) {
+            String dayString = dayString_.trim().toLowerCase();
+            if (!"today".equals(dayString)) {
+                Pattern pattern = Pattern.compile("today\\s*([-\\+])\\s*(\\d+)([dmyDMY]{1})");
+                Matcher matcher = pattern.matcher(dayString);
+                if (matcher.find()) {
+                    int timeValue = Integer.parseInt(matcher.group(2));
+                    if ("-".equals(matcher.group(1))) {
+                        timeValue = timeValue * -1;
+                    }
+
+                    int field = Calendar.DATE;
+                    if (matcher.group(3).equalsIgnoreCase("y")) {
+                        field = Calendar.YEAR;
+                    } else if (matcher.group(3).equalsIgnoreCase("m")) {
+                        field = Calendar.MONTH;
+                    }
+
+                    calendarDate.add(field, timeValue);
+                } else {
+                    try {
+                        calendarDate.setTime(DATE_FORMAT.parse(dayString));
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+
+        //set time to mid-day
+        calendarDate.set(Calendar.HOUR_OF_DAY, 12);
+        calendarDate.set(Calendar.MINUTE, 0);
+        calendarDate.set(Calendar.SECOND, 0);
+        calendarDate.set(Calendar.MILLISECOND, 0);
+
+        return calendarDate;
+    }
+
+    public static void setTextStyle(String textStyle, AppCompatTextView view) {
+        switch (textStyle) {
+            case JsonFormConstants.BOLD:
+                view.setTypeface(null, Typeface.BOLD);
+                break;
+            case JsonFormConstants.ITALIC:
+                view.setTypeface(null, Typeface.ITALIC);
+                break;
+            case JsonFormConstants.NORMAL:
+                view.setTypeface(null, Typeface.NORMAL);
+                break;
+            case JsonFormConstants.BOLD_ITALIC:
+                view.setTypeface(null, Typeface.BOLD_ITALIC);
+                break;
+            default:
+                view.setTypeface(null, Typeface.NORMAL);
+                break;
+        }
     }
 }

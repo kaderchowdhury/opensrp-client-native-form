@@ -12,6 +12,7 @@ import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v4.content.FileProvider;
+import android.support.v7.widget.AppCompatRadioButton;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -27,6 +28,7 @@ import com.vijay.jsonwizard.R;
 import com.vijay.jsonwizard.constants.JsonFormConstants;
 import com.vijay.jsonwizard.customviews.CheckBox;
 import com.vijay.jsonwizard.customviews.MaterialSpinner;
+import com.vijay.jsonwizard.customviews.NativeEditText;
 import com.vijay.jsonwizard.customviews.RadioButton;
 import com.vijay.jsonwizard.fragments.JsonFormFragment;
 import com.vijay.jsonwizard.interactors.JsonFormInteractor;
@@ -34,13 +36,18 @@ import com.vijay.jsonwizard.mvp.MvpBasePresenter;
 import com.vijay.jsonwizard.utils.ImageUtils;
 import com.vijay.jsonwizard.utils.PermissionUtils;
 import com.vijay.jsonwizard.utils.ValidationStatus;
+import com.vijay.jsonwizard.views.CustomTextView;
 import com.vijay.jsonwizard.views.JsonFormFragmentView;
 import com.vijay.jsonwizard.viewstates.JsonFormFragmentViewState;
 import com.vijay.jsonwizard.widgets.EditTextFactory;
 import com.vijay.jsonwizard.widgets.GpsFactory;
 import com.vijay.jsonwizard.widgets.ImagePickerFactory;
+import com.vijay.jsonwizard.widgets.NativeEditTextFactory;
+import com.vijay.jsonwizard.widgets.NativeRadioButtonFactory;
+import com.vijay.jsonwizard.widgets.NumberSelectorFactory;
 import com.vijay.jsonwizard.widgets.SpinnerFactory;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -48,7 +55,9 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static com.vijay.jsonwizard.utils.FormUtils.dpToPixels;
 
@@ -78,7 +87,14 @@ public class JsonFormFragmentPresenter extends MvpBasePresenter<JsonFormFragment
     }
 
     public static ValidationStatus validate(JsonFormFragmentView formFragmentView, View childAt, boolean requestFocus) {
-        if (childAt instanceof MaterialEditText) {
+        if (childAt instanceof NativeEditText) {
+            NativeEditText editText = (NativeEditText) childAt;
+            ValidationStatus validationStatus = NativeEditTextFactory.validate(formFragmentView, editText);
+            if (!validationStatus.isValid()) {
+                if (requestFocus) validationStatus.requestAttention();
+                return validationStatus;
+            }
+        } else if (childAt instanceof MaterialEditText) {
             MaterialEditText editText = (MaterialEditText) childAt;
             ValidationStatus validationStatus = EditTextFactory.validate(formFragmentView, editText);
             if (!validationStatus.isValid()) {
@@ -110,6 +126,19 @@ public class JsonFormFragmentPresenter extends MvpBasePresenter<JsonFormFragment
                 return validationStatus;
             } else {
                 spinner.setError(null);
+            }
+        } else if (childAt instanceof CustomTextView) {
+            CustomTextView customTextView = (CustomTextView) childAt;
+            String type = (String) childAt.getTag(R.id.type);
+            if (!TextUtils.isEmpty(type) && type.equals(JsonFormConstants.NUMBER_SELECTORS)) {
+                ValidationStatus validationStatus = NumberSelectorFactory.validate(formFragmentView, customTextView);
+                if (!validationStatus.isValid()) {
+                    if (requestFocus) validationStatus.requestAttention();
+                    customTextView.setError(validationStatus.getErrorMessage());
+                    return validationStatus;
+                } else {
+                    customTextView.setError(null);
+                }
             }
         }
 
@@ -181,6 +210,16 @@ public class JsonFormFragmentPresenter extends MvpBasePresenter<JsonFormFragment
 
             if (childAt instanceof MaterialEditText) {
                 MaterialEditText editText = (MaterialEditText) childAt;
+
+                String rawValue = (String) editText.getTag(R.id.raw_value);
+                if (rawValue == null) {
+                    rawValue = editText.getText().toString();
+                }
+
+                getView().writeValue(mStepName, key, rawValue,
+                        openMrsEntityParent, openMrsEntity, openMrsEntityId);
+            } else if (childAt instanceof NativeEditText) {
+                NativeEditText editText = (NativeEditText) childAt;
 
                 String rawValue = (String) editText.getTag(R.id.raw_value);
                 if (rawValue == null) {
@@ -280,7 +319,12 @@ public class JsonFormFragmentPresenter extends MvpBasePresenter<JsonFormFragment
                 dispatchTakePictureIntent(key, type);
                 break;
             case JsonFormConstants.NATIVE_RADIO_BUTTON:
-                showInformationDialog(v);
+                String type = (String) v.getTag(R.id.radio_button_specify_type);
+                if (JsonFormConstants.NATIVE_RADIO_SPECIFY_INFO.equals(type)) {
+                    NativeRadioButtonFactory.showDateDialog(v);
+                } else {
+                    showInformationDialog(v);
+                }
                 break;
             case JsonFormConstants.CHECK_BOX:
                 showInformationDialog(v);
@@ -293,6 +337,9 @@ public class JsonFormFragmentPresenter extends MvpBasePresenter<JsonFormFragment
                 if (!TextUtils.isEmpty(info)) {
                     showInformationDialog(v);
                 }
+                break;
+            case JsonFormConstants.NUMBER_SELECTORS:
+                createNumberSelector(v);
                 break;
             default:
                 break;
@@ -377,26 +424,59 @@ public class JsonFormFragmentPresenter extends MvpBasePresenter<JsonFormFragment
     }
 
     public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
+
         Log.d(TAG, "onCheckedChanged called");
+
         if (compoundButton instanceof CheckBox) {
             String parentKey = (String) compoundButton.getTag(R.id.key);
             String openMrsEntityParent = (String) compoundButton.getTag(R.id.openmrs_entity_parent);
             String openMrsEntity = (String) compoundButton.getTag(R.id.openmrs_entity);
             String openMrsEntityId = (String) compoundButton.getTag(R.id.openmrs_entity_id);
             String childKey = (String) compoundButton.getTag(R.id.childKey);
+
+            JSONObject formObjectForStep = getFormObjectForStep(mStepName, parentKey);
+
+            if (formObjectForStep != null) {
+                try {
+
+                    JSONArray exclusiveArray = formObjectForStep.getJSONArray(JsonFormConstants.JSON_FORM_KEY.EXCLUSIVE);
+
+                    Set<String> exclusiveSet = new HashSet<>();
+                    for (int i = 0; i < exclusiveArray.length(); i++) {
+                        exclusiveSet.add(exclusiveArray.getString(i));
+                    }
+
+                    if (isChecked) {
+
+                        if (exclusiveSet.contains(childKey)) {
+
+                            getView().unCheckAllExcept(parentKey, childKey);
+
+                        } else {
+                            for (String excludeKey : exclusiveSet) {
+                                getView().unCheck(parentKey, excludeKey);
+                            }
+                        }
+                    }
+
+                } catch (Exception e) {
+                    Log.d(TAG, e.getMessage());
+                }
+            }
+
+
             getView().writeValue(mStepName, parentKey, JsonFormConstants.OPTIONS_FIELD_NAME, childKey,
                     String.valueOf(compoundButton.isChecked()), openMrsEntityParent,
                     openMrsEntity, openMrsEntityId);
-        } else if ((compoundButton instanceof android.widget.RadioButton ||
-                compoundButton instanceof RadioButton) && isChecked) {
+        } else if ((compoundButton instanceof AppCompatRadioButton || compoundButton instanceof RadioButton) && isChecked) {
             String parentKey = (String) compoundButton.getTag(R.id.key);
             String openMrsEntityParent = (String) compoundButton.getTag(R.id.openmrs_entity_parent);
             String openMrsEntity = (String) compoundButton.getTag(R.id.openmrs_entity);
             String openMrsEntityId = (String) compoundButton.getTag(R.id.openmrs_entity_id);
             String childKey = (String) compoundButton.getTag(R.id.childKey);
-            if (compoundButton instanceof RadioButton) {
-                getView().unCheckAllExcept(parentKey, childKey);
-            }
+
+            getView().unCheckAllExcept(parentKey, childKey);
+
             getView().writeValue(mStepName, parentKey, childKey, openMrsEntityParent,
                     openMrsEntity, openMrsEntityId);
         }
@@ -404,13 +484,53 @@ public class JsonFormFragmentPresenter extends MvpBasePresenter<JsonFormFragment
 
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
         String parentKey = (String) parent.getTag(R.id.key);
+        String type = (String) parent.getTag(R.id.type);
         String openMrsEntityParent = (String) parent.getTag(R.id.openmrs_entity_parent);
         String openMrsEntity = (String) parent.getTag(R.id.openmrs_entity);
         String openMrsEntityId = (String) parent.getTag(R.id.openmrs_entity_id);
+        CustomTextView customTextView = (CustomTextView) parent.getTag(R.id.number_selector_textview);
         if (position >= 0) {
             String value = (String) parent.getItemAtPosition(position);
             getView().writeValue(mStepName, parentKey, value, openMrsEntityParent, openMrsEntity,
                     openMrsEntityId);
         }
+
+        if (JsonFormConstants.NUMBER_SELECTORS.equals(type)) {
+            NumberSelectorFactory.setBackgrounds(customTextView);
+            NumberSelectorFactory.setSelectedTextViews(customTextView);
+            NumberSelectorFactory.setSelectedTextViewText((String) parent.getItemAtPosition(position));
+        }
+    }
+
+    private void createNumberSelector(View view) {
+        CustomTextView customTextView = (CustomTextView) view;
+        int item = (int) customTextView.getTag(R.id.number_selector_item);
+        int numberOfSelectors = (int) customTextView.getTag(R.id.number_selector_number_of_selectors);
+        if (item < numberOfSelectors - 1) {
+            NumberSelectorFactory.setBackgrounds(customTextView);
+        }
+        NumberSelectorFactory.setSelectedTextViews(customTextView);
+        String parentKey = (String) customTextView.getTag(R.id.key);
+        String openMrsEntityParent = (String) customTextView.getTag(R.id.openmrs_entity_parent);
+        String openMrsEntity = (String) customTextView.getTag(R.id.openmrs_entity);
+        String openMrsEntityId = (String) customTextView.getTag(R.id.openmrs_entity_id);
+        String value = String.valueOf(customTextView.getText());
+        getView().writeValue(mStepName, parentKey, value, openMrsEntityParent, openMrsEntity, openMrsEntityId);
+    }
+
+    private JSONObject getFormObjectForStep(String mStepName, String fieldKey) {
+        try {
+            JSONArray array = getView().getStep(mStepName).getJSONArray(JsonFormConstants.FIELDS);
+
+            for (int i = 0; i < array.length(); i++) {
+                if (array.getJSONObject(i).get(JsonFormConstants.KEY).equals(fieldKey)) {
+                    return array.getJSONObject(i);
+                }
+            }
+
+        } catch (JSONException e) {
+            Log.d(TAG, e.getMessage());
+        }
+        return null;
     }
 }
