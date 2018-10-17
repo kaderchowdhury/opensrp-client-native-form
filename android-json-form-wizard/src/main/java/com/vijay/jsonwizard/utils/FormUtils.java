@@ -246,7 +246,7 @@ public class FormUtils {
             }
         }
 
-        String combinedLabelText = "<font color=" + labelTextColor + ">" + label + "</font>";
+        String combinedLabelText = "<font color=" + labelTextColor + ">" + label + "</font>" + asterisks;
 
         //Applying textStyle to the text;
         String textStyle = jsonObject.optString(JsonFormConstants.TEXT_STYLE, JsonFormConstants.NORMAL);
