@@ -6,6 +6,7 @@ buildscript {
 
     dependencies {
         classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.11.0"
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1'
     }
 }
 
@@ -29,6 +30,7 @@ configure(allprojects) { project ->
 project.ext.preDexLibs = !project.hasProperty('disablePreDex')
 
 subprojects {
+    group='com.github.kaderchowdhury'
 
     group = 'org.smartregister'
 
@@ -66,7 +68,7 @@ subprojects {
         }
     }
 }
-
+apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'java'
 apply plugin: 'build-dashboard'
 apply plugin: 'io.codearte.nexus-staging'
